@@ -216,3 +216,12 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Regenerable data artifacts (rebuild via `python -m rag.data_prep` /
+# `python -m rag.indexing`) -- too large / not meaningful to version.
+# Small eval artifacts (test_set, eval_queries, eval_results, worksheet)
+# are intentionally NOT ignored -- they're evidence cited in REPORT.md.
+data/corpus.jsonl
+data/bm25.pkl
+data/doc_store.pkl
+data/faiss.index

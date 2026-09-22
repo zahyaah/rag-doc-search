@@ -1,0 +1,159 @@
+{
+  "retrieval": {
+    "recall@1": 0.9333333333333333,
+    "recall@3": 1.0,
+    "recall@5": 1.0,
+    "recall@10": 1.0,
+    "mrr": 0.9666666666666667,
+    "n_queries": 15
+  },
+  "summarization": {
+    "rouge1_f_avg": 0.19941389157912562,
+    "rouge2_f_avg": 0.07158495744940203,
+    "rougeL_f_avg": 0.1331911875392328,
+    "n_docs": 8
+  },
+  "retrieval_per_query": [
+    {
+      "doc_id": "c52340cb2df01c33f99b739f23454e56bc072bdf",
+      "query": "UN official says cargo ship may have capsized migrant boat in Mediterranean",
+      "found_at_rank": 1
+    },
+    {
+      "doc_id": "23b01320d93bb8a0fce96fb0dc37bcebf3f179cb",
+      "query": "FBI confirms Marwan killed in Philippines raid, removes from most wanted terrorists list",
+      "found_at_rank": 1
+    },
+    {
+      "doc_id": "203886369feea77bbc35715e6d7e518b751f57de",
+      "query": "Anne Frank died earlier than thought new research typhus Bergen-Belsen 1945 date of death correction",
+      "found_at_rank": 1
+    },
+    {
+      "doc_id": "b69f1601d82d5748518259a14cf164140bce7014",
+      "query": "Aaron Hernandez defense closing arguments Odin Lloyd murder trial jury deliberations",
+      "found_at_rank": 1
+    },
+    {
+      "doc_id": "3783ef06d42f795f34533caf346c2cb9d3c844dd",
+      "query": "Robert Durst charged with unlawful firearm possession, faces 10 years in prison",
+      "found_at_rank": 1
+    },
+    {
+      "doc_id": "18e1af12d67995d1f20580b30bf7a7c8379a9009",
+      "query": "True Detective season 2 teaser video cast Colin Farrell Vince Vaughn Rachel McAdams June 21 premiere",
+      "found_at_rank": 1
+    },
+    {
+      "doc_id": "dc8bb8429f624c4cceea3caae72874acb85e69b3",
+      "query": "How Pope Francis helped a lapsed Catholic rediscover faith after brother's death",
+      "found_at_rank": 1
+    },
+    {
+      "doc_id": "996940764a066a9c16f622c873ad041ac5521fa3",
+      "query": "Kayahan Turkish singer dies at 66 cancer Eurovision 1990 Istanbul hospital",
+      "found_at_rank": 1
+    },
+    {
+      "doc_id": "c218d0bbaf38d0e798af86f4c6357e7cf7fa5331",
+      "query": "Jedi temple petition students Dokuz Eylul University Izmir Change.org 5500 signatures",
+      "found_at_rank": 1
+    },
+    {
+      "doc_id": "4cc5744a14d8a07414760b271c1801c670149f68",
+      "query": "Blue Bell ice cream recall Broken Arrow plant listeria contamination CDC warning 2014",
+      "found_at_rank": 1
+    },
+    {
+      "doc_id": "a02e362c5b8f049848ce718b37b96117485461cf",
+      "query": "fiery sunset Washington caused by Siberian wildfire smoke April 2024",
+      "found_at_rank": 1
+    },
+    {
+      "doc_id": "3c89272a6c3e66a46eed1242076b2cfcf98bbbf7",
+      "query": "Ahmed Farouq American al Qaeda deputy emir killed in January drone strike Pakistan",
+      "found_at_rank": 1
+    },
+    {
+      "doc_id": "ba2ec653b7d0c46759f39aef6dac850c9229716f",
+      "query": "Al-Shabaab attack on Garissa University College 2015 147 dead Kenya terrorism news",
+      "found_at_rank": 2
+    },
+    {
+      "doc_id": "32a7125a655a052b3ea62350a8e02f0245cc220e",
+      "query": "Rurik Jutting murder case Hong Kong victims Seneng Mujiasih Sumarti Ningsih suitcase balcony November 2014",
+      "found_at_rank": 1
+    },
+    {
+      "doc_id": "10c476a5cff1ad9123aaa6f62dc2a54dac1263c6",
+      "query": "greater adjutant stork Boragaon landfill Guwahati families living in dump",
+      "found_at_rank": 1
+    }
+  ],
+  "summarization_per_doc": [
+    {
+      "doc_id": "c52340cb2df01c33f99b739f23454e56bc072bdf",
+      "generated_summary": "The migrant boat that sank in the Mediterranean over the weekend, resulting in one of the deadliest known disasters involving migrants crossing from North Africa, may have capsized due to a large wave created by the cargo ship King Jacob as it approached to assist, according to survivors interviewed by a U.N. official in Catania, Italy. This account contrasts with Italian authorities\u2019 initial claim that the boat capsized because migrants rushed to one side upon seeing the cargo ship. The King Jacob\u2019s operator denied causing the capsizing, stating the ship moved slowly and deployed rescue equipment. Survivors reported being on the highest part of the overcrowded vessel, while many were trapped below, possibly locked in by smugglers. Italian officials confirmed 28 survivors and 24 bodies recovered, with estimates of 800\u2013850 people aboard. Two survivors, the Tunisian captain and a Syrian crew member, were arrested on suspicion of human trafficking. The incident underscores the growing strain on commercial vessels involved in migrant rescues and the EU\u2019s struggle to respond effectively to the escalating crisis, despite recent calls for increased search-and-rescue resources and coordinated action.",
+      "reference_summary": "Shipping company representative denies cargo ship caused the capsizing . UNHCR spokeswoman tells CNN that a cargo ship may have touched the migrant boat . Italian authorities have arrested two survivors on suspicion of human trafficking .",
+      "rouge1_f": 0.23318385650224216,
+      "rouge2_f": 0.11764705882352941,
+      "rougeL_f": 0.14349775784753363
+    },
+    {
+      "doc_id": "23b01320d93bb8a0fce96fb0dc37bcebf3f179cb",
+      "generated_summary": "The FBI confirmed that Marwan, the Malaysian bomb maker also known as Zulkifli bin Hir, was killed during a disastrous January raid in the southern Philippines targeting the Bangsamoro Islamic Freedom Fighters (BIFF). DNA evidence from a severed finger linked the deceased to Marwan, leading to his removal from the FBI\u2019s Most Wanted Terrorists list. The raid resulted in the deaths of 44 Philippine Special Action Force (SAF) commandos, with only one survivor from a blocking unit that ran out of ammunition during an eight-hour firefight involving MILF fighters. Eighteen MILF fighters were also killed, shattering a three-year ceasefire and jeopardizing the peace process with the Moro Islamic Liberation Front (MILF). While authorities viewed Marwan as a high-value target due to his alleged IED expertise and ties to Jemaah Islamiyah and Abu Sayyaf, an IPAC report criticized the operation\u2019s narrow focus, arguing it undermined the peace agreement and that Marwan\u2019s capabilities had been exaggerated. The mission\u2019s fallout sparked national mourning and ongoing controversy over its strategic wisdom.",
+      "reference_summary": "A man killed in a raid in the Philippines in January was a \"most wanted\" terrorist, the FBI says . Marwan was a Malaysian believed to have provided support to Islamist terror groups . 44 elite Philippine commandos were killed in the raid on his hideout last month .",
+      "rouge1_f": 0.2636363636363636,
+      "rouge2_f": 0.06422018348623852,
+      "rougeL_f": 0.16363636363636366
+    },
+    {
+      "doc_id": "203886369feea77bbc35715e6d7e518b751f57de",
+      "generated_summary": "Anne Frank and her sister Margot likely died of typhus in the Bergen-Belsen concentration camp in February 1945, at least a month earlier than the previously accepted date of March 1945. New research by the Anne Frank House, based on Red Cross archives, survivor testimonies, and memorial records, indicates that both sisters exhibited typhus symptoms before February 7, 1945, and given the disease\u2019s typical progression, they probably did not survive beyond mid-February. After their arrest in 1944 from the Amsterdam secret annex, the sisters were transferred from Auschwitz to Bergen-Belsen, where they endured horrific conditions: overcrowding, lack of sanitation, lice-infested straw, and exposure to violent storms. Witnesses described Anne as emaciated by December 1944, unable to wear her clothes due to lice. As typhus spread rapidly in the deteriorating camp, thousands died daily. Although the exact dates of their deaths remain uncertain, Margot died before Anne. Anne\u2019s diary, which ends before her deportation, remains a powerful testament to her hope and resilience, continuing to educate the world about the Holocaust.",
+      "reference_summary": "Museum: Anne Frank died earlier than previously believed . Researchers re-examined archives and testimonies of survivors . Anne and older sister Margot Frank are believed to have died in February 1945 .",
+      "rouge1_f": 0.21359223300970873,
+      "rouge2_f": 0.04901960784313725,
+      "rougeL_f": 0.12621359223300974
+    },
+    {
+      "doc_id": "b69f1601d82d5748518259a14cf164140bce7014",
+      "generated_summary": "The defense for Aaron Hernandez argued that there was no credible motive for him to murder Odin Lloyd, his friend and future brother-in-law, emphasizing that prosecutors failed to prove guilt beyond a reasonable doubt despite a lengthy trial with over 130 witnesses and 400 pieces of evidence. Defense attorney James Sultan suggested Hernandez was a young, overwhelmed man who witnessed the killing but did not commit it, instead implicating co-defendants Ernest Wallace and Carlos Ortiz as drug users prone to violent rages. The prosecution portrayed Hernandez as cold, insecure, and capable of murder over perceived slights, citing circumstantial evidence including security footage showing him near the crime scene with a handgun, statements about lost endorsements, and testimony from his fianc\u00e9e about disposing of a marijuana-scented box believed to contain the murder weapon. Hernandez also faces separate charges for a 2012 double shooting, which the jury has not heard about in this trial. The case remains largely circumstantial, with no clear motive established and the murder weapon never recovered.",
+      "reference_summary": "A Massachusetts jury is deliberating Hernandez's case . Hernandez is charged with first-degree murder in the killing of Odin Lloyd .",
+      "rouge1_f": 0.1443298969072165,
+      "rouge2_f": 0.020833333333333332,
+      "rougeL_f": 0.07216494845360825
+    },
+    {
+      "doc_id": "3783ef06d42f795f34533caf346c2cb9d3c844dd",
+      "generated_summary": "Robert Durst, a 71-year-old millionaire real estate heir and convicted felon, has been charged by a federal grand jury with unlawful possession of a .38-caliber revolver found in his hotel room, facing up to 10 years in prison if convicted. This charge adds to a growing list of legal troubles, including a first-degree murder charge in Los Angeles for the 2000 killing of his friend Susan Berman, a crime writer and confidante, whom prosecutors allege he killed because she was a witness to the 1982 disappearance of his first wife, Kathleen McCormack Durst. Durst awaits extradition to Los Angeles, where conviction could result in the death penalty. He is currently held without bail in New Orleans on related state weapons and drugs charges, after authorities found a loaded revolver, marijuana, over $40,000 in cash, a passport, birth certificate, latex mask, and a UPS tracking number linked to an intercepted FBI package containing clothing and over $100,000 in cash. Durst has long denied involvement in Berman\u2019s death or his wife\u2019s disappearance. He previously admitted to killing and dismembering a neighbor in 2003 but was acquitted on self-defense grounds. His attorney cites serious health issues, including hydrocephalus requiring brain surgery and stent implantation, esophageal cancer surgery, significant weight loss, and a diagnosis of mild autism, for which he has received treatment from a leading expert",
+      "reference_summary": "Durst, a convicted felon, charged with unlawful possession of a firearm . He is accused of having a .38 caliber revolver and faces up to 10 years in prison .",
+      "rouge1_f": 0.1923076923076923,
+      "rouge2_f": 0.12403100775193798,
+      "rougeL_f": 0.15384615384615388
+    },
+    {
+      "doc_id": "18e1af12d67995d1f20580b30bf7a7c8379a9009",
+      "generated_summary": "HBO has released a teaser for the second season of *True Detective*, set to premiere on June 21. The new season features Colin Farrell as Ray Velcoro, a compromised detective in the industrial city of Vinci; Vince Vaughn as Frank Semyon, a criminal entrepreneur facing ruin; Rachel McAdams as Ani Bezzerides, a Ventura County Sheriff\u2019s detective at odds with the system; and Taylor Kitsch as Paul Woodrugh, a war veteran and motorcycle cop whose discovery of a crime scene ignites a multi-agency investigation. Together, they navigate a web of conspiracy and betrayal across California\u2019s scorched landscapes, entangled in criminal collusions involving billions of dollars. The first season, starring Matthew McConaughey and Woody Harrelson as Louisiana State Police detectives, was a critical and popular hit, with its finale crashing HBO Go in March 2014.",
+      "reference_summary": "HBO released a teaser video for the new season, starting June 21 . The series stars Colin Farrell and Vince Vaughn .",
+      "rouge1_f": 0.21794871794871795,
+      "rouge2_f": 0.11688311688311688,
+      "rougeL_f": 0.1794871794871795
+    },
+    {
+      "doc_id": "dc8bb8429f624c4cceea3caae72874acb85e69b3",
+      "generated_summary": "After the death of my brother Jimmy from cancer, I stopped praying, feeling abandoned by God and rejected by the Catholic Church when I sought comfort from a priest at a parish not my own. The dismissive response reinforced my belief that the Church\u2019s rules excluded sinners like me, leading me to identify as a lapsed Catholic. However, Pope Francis has reawakened my faith through his humility, compassion, and emphasis on mercy over judgment. His actions \u2014 waking early to pray, washing the feet of marginalized people, advocating for the poor, and welcoming LGBTQ individuals with the words, \u201cWho am I to judge?\u201d \u2014 reflect a Gospel-centered approach that prioritizes love and accompaniment over exclusion. Speaking with Cardinal Gerald Lacroix deepened my understanding: Francis remains rooted in tradition and truth but insists the Church\u2019s door is open to all, even if it does not bless same-sex unions. Lacroix\u2019s reminder that Jesus walked with sinners until the end, never giving up on anyone, resonated profoundly. I now see the Church not as an imposing institution, but as a community proposing the Lord Jesus and His Gospel. Inspired, I look forward to returning to Mass, bowing my head in prayer, and seeking forgiveness and Christ\u2019s love.",
+      "reference_summary": "There is something about Pope Francis that's reawakened her faith, say CNN's Carol Costello . Meeting Cardinal Gerald Lacroix of Quebec showed how the Pope is putting people in place to carry out his new vision, Costello writes .",
+      "rouge1_f": 0.13765182186234817,
+      "rouge2_f": 0.02448979591836735,
+      "rougeL_f": 0.08906882591093118
+    },
+    {
+      "doc_id": "996940764a066a9c16f622c873ad041ac5521fa3",
+      "generated_summary": "Kayahan Acar, one of Turkey's most beloved singers and songwriters, died of cancer in Istanbul at the age of 66, just five days after his birthday. First diagnosed in 1990\u2014the same year he competed in the Eurovision Song Contest, finishing 17th\u2014he experienced a cancer recurrence in 2005 and again in 2014. His breakthrough came the year after Eurovision with the release of his album \"I Made a Vow,\" which propelled him to stardom and remains his most popular work despite recording nearly 20 albums throughout his career. A skilled guitarist and tenor vocalist, Kayahan was renowned for his heartfelt love songs and contributed significantly to Turkish music across generations. Though his later performances showed him frailer and often seated without a guitar, he continued to sing with joy. Prime Minister Ahmet Davutoglu mourned his passing, praising his countless compositions and lasting impact on Turkish culture. Kayahan was born in Izmir in 1949, raised in Ankara, and spent much of his life in Istanbul, where he ultimately passed away in a hospital. His final album was released in 2007, and his music continues to be covered by other artists.",
+      "reference_summary": "Kayahan wrote some of Turkey's best-loved pop songs . The singer was first diagnosed with cancer in 1990 . He most recently performed in February in Istanbul .",
+      "rouge1_f": 0.1926605504587156,
+      "rouge2_f": 0.05555555555555556,
+      "rougeL_f": 0.13761467889908255
+    }
+  ]
+}
