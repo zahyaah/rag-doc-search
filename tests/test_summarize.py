@@ -13,15 +13,15 @@ def _fake_chat_completion(messages, max_tokens, **kwargs):
 def test_named_length_short_maps_to_configured_word_count(mock_chat):
     summarize_documents([{"title": "Doc", "text": "Some article text."}], length="short")
     call = mock_chat.call_args
-    # short -> 50 words (config.SUMMARY_LENGTHS["short"]) -> max_tokens ~= 50*2.2+50
-    assert call.kwargs["max_tokens"] == int(50 * 2.2) + 50
+    # short -> 50 words (config.SUMMARY_LENGTHS["short"]) -> max_tokens ~= 50*1.5+40
+    assert call.kwargs["max_tokens"] == int(50 * 1.5) + 40
 
 
 @patch("rag.summarize.chat_completion", side_effect=_fake_chat_completion)
 def test_explicit_word_count_is_used_directly(mock_chat):
     summarize_documents([{"title": "Doc", "text": "Some article text."}], length=80)
     call = mock_chat.call_args
-    assert call.kwargs["max_tokens"] == int(80 * 2.2) + 50
+    assert call.kwargs["max_tokens"] == int(80 * 1.5) + 40
 
 
 @patch("rag.summarize.chat_completion", side_effect=_fake_chat_completion)
@@ -45,3 +45,19 @@ def test_multiple_documents_are_concatenated_with_separators(mock_chat):
     user_message = mock_chat.call_args.kwargs["messages"][1]["content"]
     assert "Doc A" in user_message and "Text A." in user_message
     assert "Doc B" in user_message and "Text B." in user_message
+
+
+@patch("rag.summarize.chat_completion", side_effect=_fake_chat_completion)
+def test_system_prompt_requests_markdown_tldr_and_bullets(mock_chat):
+    summarize_documents([{"title": "Doc", "text": "Some article text."}], length="short")
+    system_message = mock_chat.call_args.kwargs["messages"][0]["content"]
+    assert "TL;DR" in system_message
+    assert "Key points" in system_message
+
+
+@patch("rag.summarize.chat_completion", side_effect=_fake_chat_completion)
+def test_system_prompt_states_word_count_as_hard_limit(mock_chat):
+    summarize_documents([{"title": "Doc", "text": "Some article text."}], length="short")
+    system_message = mock_chat.call_args.kwargs["messages"][0]["content"]
+    assert "hard limit" in system_message
+    assert "50 words" in system_message

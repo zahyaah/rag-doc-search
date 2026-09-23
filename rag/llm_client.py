@@ -1,4 +1,11 @@
-"""Thin client for OpenRouter's OpenAI-compatible chat completions API."""
+"""Thin client for an OpenAI-compatible chat completions API.
+
+Provider-agnostic: reads base URL / API key / model from rag.config,
+which resolves them from LLM_PROVIDER ("openrouter" or "gemini"). Both
+providers speak the same request/response shape; only a couple of
+OpenRouter-specific extras (attribution headers, the "reasoning" field)
+are conditional on provider.
+"""
 
 import time
 
@@ -13,35 +20,67 @@ class LLMError(RuntimeError):
 
 def chat_completion(
     messages: list,
-    model: str = config.OPENROUTER_MODEL,
+    model: str = None,
     temperature: float = 0.3,
     max_tokens: int = 500,
     max_retries: int = 3,
 ) -> str:
-    if not config.OPENROUTER_API_KEY:
-        raise LLMError(
-            "OPENROUTER_API_KEY not set. Copy .env.example to .env and add your key "
-            "(https://openrouter.ai/keys)."
-        )
+    provider, api_key, base_url, default_model = config.get_llm_settings()
+    model = model or default_model
 
-    url = f"{config.OPENROUTER_BASE_URL}/chat/completions"
+    if not api_key:
+        key_name = "GEMINI_API_KEY" if provider == "gemini" else "OPENROUTER_API_KEY"
+        where = (
+            "https://aistudio.google.com/apikey"
+            if provider == "gemini"
+            else "https://openrouter.ai/keys"
+        )
+        raise LLMError(f"{key_name} not set. Copy .env.example to .env and add your key ({where}).")
+
+    url = f"{base_url}/chat/completions"
     headers = {
-        "Authorization": f"Bearer {config.OPENROUTER_API_KEY}",
+        "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
-        "HTTP-Referer": config.OPENROUTER_SITE_URL,
-        "X-Title": config.OPENROUTER_APP_NAME,
     }
     payload = {
         "model": model,
         "messages": messages,
         "temperature": temperature,
         "max_tokens": max_tokens,
+    }
+
+    if provider == "gemini":
+        # Verified live: even at reasoning_effort "low" (the lowest Gemini
+        # 3.x accepts -- "none"/"minimal" both 400), hidden thinking tokens
+        # on a real (non-trivial) prompt consumed an entire 115-token budget
+        # before any visible answer, returning just "**TL;DR:**" and nothing
+        # else. Unlike OpenRouter, Gemini gives no way to fully disable
+        # thinking on these models, so absorb it with a flat headroom buffer
+        # instead of trying to compute it precisely per-call.
+        payload["max_tokens"] = max_tokens + 400
+
+    if provider != "gemini":
+        # OpenRouter-only extras.
+        headers["HTTP-Referer"] = config.OPENROUTER_SITE_URL
+        headers["X-Title"] = config.OPENROUTER_APP_NAME
         # Some free models (e.g. Nemotron 3 Super) reason before answering by
         # default, burning max_tokens on hidden thinking. We don't need CoT
         # for summarization/query-gen, so disable it outright.
         # Source: https://openrouter.ai/docs/use-cases/reasoning-tokens
-        "reasoning": {"effort": "none"},
-    }
+        payload["reasoning"] = {"effort": "none"}
+    else:
+        # Gemini 3.x models think by default too, and it's worse here: thinking
+        # tokens aren't reported in completion_tokens at all, so a small
+        # max_tokens (sized for the visible answer) can be entirely consumed
+        # by invisible thinking -- finish_reason "length" with zero content.
+        # Verified live: default reasoning cost ~95 tokens for a 1-word reply
+        # (total_tokens 104, completion_tokens 1). "none" and "minimal" both
+        # 400 on gemini-3.8-flash ("not supported for this model"); "low" is
+        # the lowest accepted level and brought the same call to
+        # total_tokens 9. Gemini does not support disabling thinking outright
+        # on 3.x models (unlike OpenRouter's "none" above).
+        # Source: https://ai.google.dev/gemini-api/docs/openai
+        payload["reasoning_effort"] = "low"
 
     # Retryable: rate limiting (429) and upstream provider hiccups (502/503).
     # Source: https://openrouter.ai/docs/api-reference/errors
@@ -77,4 +116,4 @@ def chat_completion(
             last_err = e
             time.sleep(2 ** attempt)
 
-    raise LLMError(f"OpenRouter request failed after {max_retries} attempts: {last_err}")
+    raise LLMError(f"LLM request failed after {max_retries} attempts: {last_err}")

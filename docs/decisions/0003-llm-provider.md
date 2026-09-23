@@ -66,3 +66,15 @@ Source: https://openrouter.ai/docs/use-cases/reasoning-tokens
   tests for this exact failure mode).
 - No SLA/uptime guarantee on a free model; a paid key would be the
   production follow-up if this moved past a take-home assignment.
+- **Provider fallback added** after hitting the 50/day cap mid-build:
+  `rag/config.py` and `rag/llm_client.py` now resolve provider settings
+  (base URL / API key / model) via `LLM_PROVIDER` (`openrouter` default,
+  `gemini` alternative, `.env`-driven). Both speak the OpenAI-compatible
+  chat-completions shape, so this needed no new request-building logic —
+  only conditionally skipping two OpenRouter-only extras (attribution
+  headers, the `reasoning` field) when the provider is Gemini. Gemini's
+  OpenAI-compatible endpoint and free-tier model list:
+  https://ai.google.dev/gemini-api/docs/openai,
+  https://ai.google.dev/gemini-api/docs/pricing. OpenRouter remains the
+  documented default; Gemini is an opt-in escape hatch for exhausted
+  quota, not a replacement decision.

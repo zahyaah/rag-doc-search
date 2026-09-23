@@ -1,12 +1,19 @@
 """Hybrid document search: BM25 (lexical) + FAISS dense embeddings (semantic).
 
-Both score types are min-max normalized to [0, 1] per query, then combined
-with a weighted sum. This lets keyword-exact matches (BM25 strength) and
-paraphrase/semantic matches (embedding strength) both surface relevant docs.
+Scales by construction, not just by using fast libraries: instead of
+scoring every document in the corpus per query (the original O(n)
+approach -- see REPORT.md §6.1, where that pattern measured 560ms/query
+at just 50,000 docs), each retriever returns only its own top
+RETRIEVAL_CANDIDATE_K candidates. The two candidate sets are unioned, and
+only THAT small set is score-normalized and fused. Cost per query is
+bounded by RETRIEVAL_CANDIDATE_K, not by corpus size -- bm25s and FAISS
+(exact or IVF) are both fast at top-k retrieval regardless of corpus size,
+which is the property this design relies on.
 """
 
 import pickle
 
+import bm25s
 import faiss
 import numpy as np
 from sentence_transformers import SentenceTransformer
@@ -16,11 +23,15 @@ from rag import config
 
 class HybridSearcher:
     def __init__(self):
-        with open(config.BM25_INDEX_PATH, "rb") as f:
-            self.bm25 = pickle.load(f)
+        self.bm25 = bm25s.BM25.load(str(config.BM25_INDEX_PATH), load_corpus=False)
         with open(config.DOC_STORE_PATH, "rb") as f:
             self.docs = pickle.load(f)
         self.faiss_index = faiss.read_index(str(config.FAISS_INDEX_PATH))
+        if hasattr(self.faiss_index, "nprobe"):
+            # Re-assert nprobe after load rather than trust it round-tripped
+            # through faiss.write_index/read_index -- cheap either way.
+            nlist = self.faiss_index.nlist
+            self.faiss_index.nprobe = max(1, nlist // 10)
         self.embed_model = SentenceTransformer(config.EMBEDDING_MODEL_NAME)
 
     @staticmethod
@@ -39,29 +50,39 @@ class HybridSearcher:
     ) -> list:
         """Return top_n docs ranked by combined BM25 + embedding score."""
         n_docs = len(self.docs)
+        candidate_k = min(config.RETRIEVAL_CANDIDATE_K, n_docs)
 
-        # Lexical scores (BM25) over the whole corpus
-        bm25_scores = np.array(self.bm25.get_scores(query.lower().split()))
+        # Lexical top-k (BM25) -- doc_ids/scores aligned to each other, NOT
+        # to a full-corpus array.
+        query_tokens = bm25s.tokenize([query], show_progress=False)
+        bm25_ids, bm25_raw_scores = self.bm25.retrieve(query_tokens, k=candidate_k, show_progress=False)
+        bm25_ids, bm25_raw_scores = bm25_ids[0], bm25_raw_scores[0]
 
-        # Semantic scores (cosine similarity via normalized inner product).
-        # faiss.search returns (scores, ids) ordered by similarity, not by
-        # doc position -- rebuild a position-aligned array so it combines
-        # cleanly, element-wise, with bm25_scores.
+        # Semantic top-k (cosine similarity via normalized inner product).
         query_vec = self.embed_model.encode([query], convert_to_numpy=True).astype("float32")
         faiss.normalize_L2(query_vec)
-        distances, indices = self.faiss_index.search(query_vec, n_docs)
-        emb_scores = np.zeros(n_docs, dtype="float32")
-        for score, idx in zip(distances[0], indices[0]):
-            emb_scores[idx] = score
+        faiss_raw_scores, faiss_ids = self.faiss_index.search(query_vec, candidate_k)
+        faiss_ids, faiss_raw_scores = faiss_ids[0], faiss_raw_scores[0]
+
+        # Union candidates from both retrievers; score only this set, not
+        # the whole corpus. -1 ids can appear from FAISS IVF when fewer than
+        # candidate_k vectors are found in the probed clusters -- drop them.
+        candidate_ids = sorted(set(bm25_ids.tolist()) | set(int(i) for i in faiss_ids.tolist() if i != -1))
+
+        bm25_by_id = dict(zip(bm25_ids.tolist(), bm25_raw_scores.tolist()))
+        faiss_by_id = dict(zip(faiss_ids.tolist(), faiss_raw_scores.tolist()))
+
+        bm25_scores = np.array([bm25_by_id.get(i, 0.0) for i in candidate_ids])
+        emb_scores = np.array([faiss_by_id.get(i, 0.0) for i in candidate_ids])
 
         bm25_norm = self._min_max_normalize(bm25_scores)
         emb_norm = self._min_max_normalize(emb_scores)
-
         combined = bm25_weight * bm25_norm + embedding_weight * emb_norm
 
-        ranked_idx = np.argsort(-combined)[:top_n]
+        order = np.argsort(-combined)[:top_n]
         results = []
-        for rank, idx in enumerate(ranked_idx, start=1):
+        for rank, pos in enumerate(order, start=1):
+            idx = candidate_ids[pos]
             doc = self.docs[idx]
             results.append(
                 {
@@ -70,9 +91,9 @@ class HybridSearcher:
                     "title": doc["title"],
                     "text": doc["text"],
                     "reference_summary": doc.get("reference_summary", ""),
-                    "score": float(combined[idx]),
-                    "bm25_score": float(bm25_norm[idx]),
-                    "embedding_score": float(emb_norm[idx]),
+                    "score": float(combined[pos]),
+                    "bm25_score": float(bm25_norm[pos]),
+                    "embedding_score": float(emb_norm[pos]),
                 }
             )
         return results

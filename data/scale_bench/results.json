@@ -1,0 +1,76 @@
+{
+  "500": {
+    "bm25": {
+      "build_seconds": 0.0831,
+      "avg_query_ms": 0.673,
+      "max_query_ms": 2.796
+    },
+    "faiss_exact": {
+      "index_type": "IndexFlatIP (exact/brute-force)",
+      "build_seconds": 0.0016,
+      "avg_query_ms": 0.104,
+      "max_query_ms": 0.871
+    },
+    "faiss_approx": null
+  },
+  "2000": {
+    "bm25": {
+      "build_seconds": 0.3215,
+      "avg_query_ms": 2.057,
+      "max_query_ms": 3.727
+    },
+    "faiss_exact": {
+      "index_type": "IndexFlatIP (exact/brute-force)",
+      "build_seconds": 0.0009,
+      "avg_query_ms": 0.075,
+      "max_query_ms": 0.169
+    },
+    "faiss_approx": {
+      "index_type": "IndexIVFFlat (approximate, nlist=44, nprobe=4)",
+      "build_seconds": 0.017,
+      "avg_query_ms": 0.017,
+      "max_query_ms": 0.061,
+      "recall@10_vs_exact": 0.75
+    }
+  },
+  "10000": {
+    "bm25": {
+      "build_seconds": 1.8008,
+      "avg_query_ms": 30.541,
+      "max_query_ms": 65.833
+    },
+    "faiss_exact": {
+      "index_type": "IndexFlatIP (exact/brute-force)",
+      "build_seconds": 0.0049,
+      "avg_query_ms": 0.481,
+      "max_query_ms": 1.024
+    },
+    "faiss_approx": {
+      "index_type": "IndexIVFFlat (approximate, nlist=100, nprobe=10)",
+      "build_seconds": 0.0402,
+      "avg_query_ms": 0.069,
+      "max_query_ms": 0.102,
+      "recall@10_vs_exact": 0.89
+    }
+  },
+  "50000": {
+    "bm25": {
+      "build_seconds": 11.594,
+      "avg_query_ms": 560.639,
+      "max_query_ms": 876.733
+    },
+    "faiss_exact": {
+      "index_type": "IndexFlatIP (exact/brute-force)",
+      "build_seconds": 0.0215,
+      "avg_query_ms": 1.652,
+      "max_query_ms": 2.134
+    },
+    "faiss_approx": {
+      "index_type": "IndexIVFFlat (approximate, nlist=223, nprobe=22)",
+      "build_seconds": 0.2541,
+      "avg_query_ms": 0.226,
+      "max_query_ms": 0.302,
+      "recall@10_vs_exact": 0.95
+    }
+  }
+}

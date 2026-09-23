@@ -1,10 +1,10 @@
 {
   "retrieval": {
-    "recall@1": 0.9333333333333333,
+    "recall@1": 0.8666666666666667,
     "recall@3": 1.0,
     "recall@5": 1.0,
     "recall@10": 1.0,
-    "mrr": 0.9666666666666667,
+    "mrr": 0.9333333333333333,
     "n_queries": 15
   },
   "summarization": {
@@ -32,7 +32,7 @@
     {
       "doc_id": "b69f1601d82d5748518259a14cf164140bce7014",
       "query": "Aaron Hernandez defense closing arguments Odin Lloyd murder trial jury deliberations",
-      "found_at_rank": 1
+      "found_at_rank": 2
     },
     {
       "doc_id": "3783ef06d42f795f34533caf346c2cb9d3c844dd",

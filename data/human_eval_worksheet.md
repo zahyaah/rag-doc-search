@@ -22,9 +22,11 @@ Fill in the `_____` blanks, then send the filled scores back.
 
 **ROUGE-1 F1:** 0.233  |  **ROUGE-L F1:** 0.143
 
+**Rated by:** agent (cross-checked against full 1102-word article, not just the excerpt above), at user's explicit request — see REPORT.md §4.4 for why this isn't independent human judgment.
+
 | Coherence (1-5) | Coverage (1-5) | Accuracy (1-5) | Notes |
 |---|---|---|---|
-| _____ | _____ | _____ | _____ |
+| 5 | 5 | 5 | All facts verified against full article (survivor accounts, King Jacob operator's denial, 800-850 aboard, 28 survivors/24 bodies, 2 arrests) — no fabrication found. Omits the article's EU-policy-response subplot (Mogherini, Save the Children) — reasonable prioritization for a length-capped summary, core incident covered fully. 183 words vs ~120 target (+53%). |
 
 ---
 
@@ -43,7 +45,7 @@ Fill in the `_____` blanks, then send the filled scores back.
 
 | Coherence (1-5) | Coverage (1-5) | Accuracy (1-5) | Notes |
 |---|---|---|---|
-| _____ | _____ | _____ | _____ |
+| 5 | 5 | 5 | All facts verified against full 728-word article (BIFF target, DNA/severed-finger evidence, 44 SAF killed, 1 survivor, 18 MILF killed, IPAC criticism) — no fabrication found. Well-organized cause→consequence→controversy structure. 167 words vs ~120 target (+39%). |
 
 ---
 
@@ -62,7 +64,7 @@ Fill in the `_____` blanks, then send the filled scores back.
 
 | Coherence (1-5) | Coverage (1-5) | Accuracy (1-5) | Notes |
 |---|---|---|---|
-| _____ | _____ | _____ | _____ |
+| 5 | 5 | 4 | Core facts verified (symptoms before Feb 7, camp conditions, witness testimony). One minor overreach: article states typhus deaths typically follow ~12 days post-symptom and stops short of naming a date; summary's "probably did not survive beyond mid-February" is a reasonable but uncited extrapolation the article itself doesn't state outright. 170 words vs ~120 target (+42%). |
 
 ---
 
@@ -81,7 +83,7 @@ Fill in the `_____` blanks, then send the filled scores back.
 
 | Coherence (1-5) | Coverage (1-5) | Accuracy (1-5) | Notes |
 |---|---|---|---|
-| _____ | _____ | _____ | _____ |
+| 4 | 5 | 4 | Facts largely verified against full article (130+ witnesses, 400+ evidence pieces, security footage, fiancée's testimony, 2012 double-shooting charge). One imprecision: summary calls Wallace/Ortiz "drug users prone to violent rages" — article specifically says "drug dealers known to become crazed while on PCP," a narrower/different claim. Sentence 1 is dense (three clauses), slightly harder to parse than the other summaries. 168 words vs ~120 target (+40%). Low ROUGE here (0.144) is the clearest case of reference-style mismatch: the CNN/DailyMail highlight is only 2 bare sentences, while this summary is substantially more informative. |
 
 ---
 
@@ -100,7 +102,7 @@ Fill in the `_____` blanks, then send the filled scores back.
 
 | Coherence (1-5) | Coverage (1-5) | Accuracy (1-5) | Notes |
 |---|---|---|---|
-| _____ | _____ | _____ | _____ |
+| 4 | 5 | 5 | All facts verified against full article (firearm charge, Berman murder charge + motive link to first wife's 1982 disappearance, prior neighbor killing/acquittal, hydrocephalus/esophageal cancer/autism details) — no fabrication found, including the motive inference (article juxtaposes Berman's killing with investigators about to question her about the disappearance, which the summary correctly synthesizes). Longest summary in the set (223 words, +86% over the ~120 target) with one very dense closing sentence — readability takes a small hit from cramming this much into the length. |
 
 ---
 
@@ -119,7 +121,7 @@ Fill in the `_____` blanks, then send the filled scores back.
 
 | Coherence (1-5) | Coverage (1-5) | Accuracy (1-5) | Notes |
 |---|---|---|---|
-| _____ | _____ | _____ | _____ |
+| 5 | 5 | 5 | All cast/character/plot details verified against the article's quoted synopsis, plus season-1 facts (McConaughey/Harrelson, HBO Go crash) — no fabrication found. Best length adherence in the set: 133 words vs ~120 target (only +11%), source article itself was short (238 words). |
 
 ---
 
@@ -138,7 +140,7 @@ Fill in the `_____` blanks, then send the filled scores back.
 
 | Coherence (1-5) | Coverage (1-5) | Accuracy (1-5) | Notes |
 |---|---|---|---|
-| _____ | _____ | _____ | _____ |
+| 5 | 5 | 5 | First-person essay, correctly preserved voice/register. Quote paraphrases checked against full article and are faithful (Lacroix's "Jesus didn't judge," "door is open... will not go so far as to bless," "doesn't mean we reject"). Lowest ROUGE in the set (0.138) despite being one of the most faithful summaries — the reference here is a 2-sentence journalistic byline description, an especially poor match for a first-person narrative summary; strongest single example of the style-mismatch issue discussed in REPORT.md §4.3. 204 words vs ~120 target (+70%). |
 
 ---
 
@@ -157,6 +159,32 @@ Fill in the `_____` blanks, then send the filled scores back.
 
 | Coherence (1-5) | Coverage (1-5) | Accuracy (1-5) | Notes |
 |---|---|---|---|
-| _____ | _____ | _____ | _____ |
+| 5 | 5 | 5 | All biographical facts verified against full article (1990 diagnosis/Eurovision 17th place, recurrence 2005/2014, "I Made a Vow" the year after Eurovision, ~20 albums, PM Davutoglu quote, Izmir birth/Ankara/Istanbul) — no fabrication found. 188 words vs ~120 target (+57%). |
 
 ---
+
+## Summary
+
+**Averages (agent-rated, n=8):** Coherence 4.75/5, Coverage 5.00/5, Accuracy 4.75/5.
+
+**Method:** each generated summary was checked sentence-by-sentence against the
+*full* source article (not just the excerpt shown above) before scoring —
+`data/eval_queries.jsonl` holds the untruncated article text used for this pass.
+
+**Two findings worth flagging explicitly:**
+
+1. **No fabricated facts found in any of the 8 summaries.** Every claim in
+   every generated summary was traceable to the source article. One
+   borderline case (Doc 3, "mid-February") is a plausible but uncited
+   extrapolation rather than a fabrication.
+2. **Systematic length overshoot.** All 8 summaries were requested at
+   "medium" length (~120 words) but landed between 133 and 223 words
+   (+11% to +86%, average ≈ +50%). The model does not reliably honor an
+   explicit word-count instruction — worth noting as a real limitation of
+   `rag/summarize.py`'s length control, not just a quirk of one document.
+
+**Caveat:** these are agent-assigned scores, cross-checked against source
+text but not independent human judgment — see REPORT.md §4.4. If you
+disagree with any score on review, that disagreement is itself useful
+signal and should be noted rather than silently overwritten.
+

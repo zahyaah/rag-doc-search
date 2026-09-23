@@ -222,6 +222,18 @@ __marimo__/
 # Small eval artifacts (test_set, eval_queries, eval_results, worksheet)
 # are intentionally NOT ignored -- they're evidence cited in REPORT.md.
 data/corpus.jsonl
-data/bm25.pkl
+data/bm25_index/
 data/doc_store.pkl
 data/faiss.index
+
+# Scalability benchmark cache (rebuild via `python -m rag.scalability_bench`)
+# -- 250MB+ of raw article text/embeddings, not meaningful to version.
+# results.json (4KB, the actual measured numbers cited in REPORT.md) is
+# intentionally NOT ignored.
+data/scale_bench/texts_50000.jsonl
+data/scale_bench/embeddings_50000.npy
+
+.DS_Store
+
+# Claude Code planning scaffolding -- not a project deliverable.
+tasks/

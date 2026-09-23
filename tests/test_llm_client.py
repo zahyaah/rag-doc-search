@@ -15,6 +15,7 @@ def _ok_response(content="hello"):
 
 
 def test_raises_llm_error_when_api_key_missing(monkeypatch):
+    monkeypatch.setattr(config, "LLM_PROVIDER", "openrouter")
     monkeypatch.setattr(config, "OPENROUTER_API_KEY", "")
     with pytest.raises(LLMError, match="OPENROUTER_API_KEY not set"):
         chat_completion(messages=[{"role": "user", "content": "hi"}])
@@ -22,6 +23,7 @@ def test_raises_llm_error_when_api_key_missing(monkeypatch):
 
 @patch("rag.llm_client.requests.post")
 def test_returns_stripped_content_on_success(mock_post, monkeypatch):
+    monkeypatch.setattr(config, "LLM_PROVIDER", "openrouter")
     monkeypatch.setattr(config, "OPENROUTER_API_KEY", "test-key")
     mock_post.return_value = _ok_response("  a trimmed answer  ")
     result = chat_completion(messages=[{"role": "user", "content": "hi"}])
@@ -31,6 +33,7 @@ def test_returns_stripped_content_on_success(mock_post, monkeypatch):
 @patch("rag.llm_client.time.sleep", return_value=None)
 @patch("rag.llm_client.requests.post")
 def test_retries_on_429_then_succeeds(mock_post, mock_sleep, monkeypatch):
+    monkeypatch.setattr(config, "LLM_PROVIDER", "openrouter")
     monkeypatch.setattr(config, "OPENROUTER_API_KEY", "test-key")
     rate_limited = MagicMock(status_code=429)
     mock_post.side_effect = [rate_limited, _ok_response("recovered")]
@@ -42,6 +45,7 @@ def test_retries_on_429_then_succeeds(mock_post, mock_sleep, monkeypatch):
 @patch("rag.llm_client.time.sleep", return_value=None)
 @patch("rag.llm_client.requests.post")
 def test_raises_llm_error_after_exhausting_retries(mock_post, mock_sleep, monkeypatch):
+    monkeypatch.setattr(config, "LLM_PROVIDER", "openrouter")
     monkeypatch.setattr(config, "OPENROUTER_API_KEY", "test-key")
     mock_post.side_effect = [MagicMock(status_code=429)] * 3
     with pytest.raises(LLMError, match="failed after 3 attempts"):
@@ -62,6 +66,7 @@ def _error_body_response(message="Provider disconnected mid-stream"):
 @patch("rag.llm_client.time.sleep", return_value=None)
 @patch("rag.llm_client.requests.post")
 def test_retries_when_200_response_body_contains_error_field(mock_post, mock_sleep, monkeypatch):
+    monkeypatch.setattr(config, "LLM_PROVIDER", "openrouter")
     monkeypatch.setattr(config, "OPENROUTER_API_KEY", "test-key")
     mock_post.side_effect = [_error_body_response(), _ok_response("recovered")]
     result = chat_completion(messages=[{"role": "user", "content": "hi"}], max_retries=3)
@@ -72,6 +77,7 @@ def test_retries_when_200_response_body_contains_error_field(mock_post, mock_sle
 @patch("rag.llm_client.time.sleep", return_value=None)
 @patch("rag.llm_client.requests.post")
 def test_retries_when_choice_finish_reason_is_error(mock_post, mock_sleep, monkeypatch):
+    monkeypatch.setattr(config, "LLM_PROVIDER", "openrouter")
     monkeypatch.setattr(config, "OPENROUTER_API_KEY", "test-key")
     partial = MagicMock(status_code=200)
     partial.raise_for_status = MagicMock()
@@ -88,3 +94,53 @@ def test_retries_when_choice_finish_reason_is_error(mock_post, mock_sleep, monke
     result = chat_completion(messages=[{"role": "user", "content": "hi"}], max_retries=3)
     assert result == "recovered"
     assert mock_post.call_count == 2
+
+
+def test_raises_llm_error_naming_gemini_key_when_provider_is_gemini(monkeypatch):
+    monkeypatch.setattr(config, "LLM_PROVIDER", "gemini")
+    monkeypatch.setattr(config, "GEMINI_API_KEY", "")
+    with pytest.raises(LLMError, match="GEMINI_API_KEY not set"):
+        chat_completion(messages=[{"role": "user", "content": "hi"}])
+
+
+@patch("rag.llm_client.requests.post")
+def test_gemini_provider_hits_gemini_base_url(mock_post, monkeypatch):
+    monkeypatch.setattr(config, "LLM_PROVIDER", "gemini")
+    monkeypatch.setattr(config, "GEMINI_API_KEY", "gemini-test-key")
+    mock_post.return_value = _ok_response("gemini says hi")
+
+    result = chat_completion(messages=[{"role": "user", "content": "hi"}])
+
+    assert result == "gemini says hi"
+    called_url = mock_post.call_args.args[0]
+    assert called_url.startswith(config.GEMINI_BASE_URL)
+
+
+@patch("rag.llm_client.requests.post")
+def test_gemini_provider_omits_openrouter_only_extras(mock_post, monkeypatch):
+    monkeypatch.setattr(config, "LLM_PROVIDER", "gemini")
+    monkeypatch.setattr(config, "GEMINI_API_KEY", "gemini-test-key")
+    mock_post.return_value = _ok_response("gemini says hi")
+
+    chat_completion(messages=[{"role": "user", "content": "hi"}])
+
+    headers = mock_post.call_args.kwargs["headers"]
+    payload = mock_post.call_args.kwargs["json"]
+    assert "HTTP-Referer" not in headers
+    assert "X-Title" not in headers
+    assert "reasoning" not in payload
+
+
+@patch("rag.llm_client.requests.post")
+def test_openrouter_provider_still_sends_openrouter_only_extras(mock_post, monkeypatch):
+    monkeypatch.setattr(config, "LLM_PROVIDER", "openrouter")
+    monkeypatch.setattr(config, "OPENROUTER_API_KEY", "test-key")
+    mock_post.return_value = _ok_response("hi")
+
+    chat_completion(messages=[{"role": "user", "content": "hi"}])
+
+    headers = mock_post.call_args.kwargs["headers"]
+    payload = mock_post.call_args.kwargs["json"]
+    assert "HTTP-Referer" in headers
+    assert "X-Title" in headers
+    assert payload["reasoning"] == {"effort": "none"}

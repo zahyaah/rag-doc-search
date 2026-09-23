@@ -34,6 +34,16 @@ uv run --python .venv/bin/python -m rag.evaluate
 uv run --python .venv/bin/python -m streamlit run app.py
 ```
 
+### Switching LLM provider (OpenRouter free-tier cap workaround)
+
+OpenRouter's `:free` models cap at 50 requests/day on unfunded accounts. If
+you hit that cap, switch to Gemini's free tier instead (separate quota,
+also $0):
+
+1. Get a free key at https://aistudio.google.com/apikey
+2. In `.env`, set `LLM_PROVIDER=gemini` and `GEMINI_API_KEY=<your key>`
+3. Re-run whatever hit the cap (`rag.evaluate`, `streamlit run app.py`, etc.) — no code changes needed, `rag/llm_client.py` picks the provider up from `.env`.
+
 Alternatively, once the venv is activated (`source .venv/bin/activate`),
 drop the `uv run --python .venv/bin/python` prefix and just run
 `python -m rag.data_prep`, etc.
@@ -53,28 +63,35 @@ drop the `uv run --python .venv/bin/python` prefix and just run
 
 ```
 rag/
-  config.py       → paths, model names, weights, tunables
-  data_prep.py    → download, clean, split the corpus
-  indexing.py     → build BM25 + FAISS indexes
-  search.py       → HybridSearcher (BM25 + embedding hybrid ranking)
-  llm_client.py   → OpenRouter chat-completions client (retry/backoff)
-  summarize.py    → LLM summarization of retrieved documents
-  suggest.py      → lightweight query auto-suggestion
-  evaluate.py     → retrieval (Recall@K, MRR) + summary (ROUGE) evaluation
-app.py            → Streamlit UI
-tests/            → pytest unit tests (pure-logic modules; LLM calls mocked)
-docs/decisions/   → ADRs — the "why" behind each architectural choice
-tasks/            → implementation plan and task breakdown
-data/             → generated corpus, indexes, eval results (gitignored)
-REPORT.md         → data prep, methodology, evaluation results, challenges
+  config.py            → paths, model names, weights, tunables
+  data_prep.py         → download, clean, split the corpus
+  indexing.py          → build BM25 (bm25s) + FAISS indexes
+  search.py            → HybridSearcher (candidate-based hybrid fusion)
+  llm_client.py        → provider-agnostic OpenAI-compatible chat client (retry/backoff)
+  summarize.py         → LLM summarization of retrieved documents
+  suggest.py           → lightweight query auto-suggestion
+  evaluate.py           → retrieval (Recall@K, MRR) + summary (ROUGE) evaluation
+  scalability_bench.py → isolated benchmark: BM25/FAISS latency at 500-50k docs
+app.py                 → Streamlit UI
+tests/                 → pytest tests (pure-logic + a real-index search integration test)
+docs/decisions/        → ADRs — the "why" behind each architectural choice
+tasks/                 → implementation plan and task breakdown
+data/                  → generated corpus, indexes, eval results (gitignored)
+REPORT.md              → data prep, methodology, evaluation results, challenges
 ```
 
 ## Architecture
 
-**Search** is hybrid: BM25 (lexical/keyword) and
+**Search** is hybrid: BM25 (`bm25s`, lexical/keyword) and
 `sentence-transformers/all-MiniLM-L6-v2` embeddings via FAISS
-(semantic/cosine similarity), min-max normalized and combined by weighted
-sum. See `docs/decisions/0001-hybrid-retrieval.md`.
+(semantic/cosine similarity). Each retriever returns only its own top
+100 candidates (`config.RETRIEVAL_CANDIDATE_K`); only that small union
+is min-max normalized and combined by weighted sum — query cost is
+bounded by a constant, not by corpus size. FAISS auto-switches from
+exact `IndexFlatIP` to approximate `IndexIVFFlat` once the corpus passes
+`config.FAISS_IVF_MIN_DOCS` (1600 docs; the 500-doc production corpus
+stays exact). Measured at up to 50k docs and extrapolated for
+500k-1M — see `REPORT.md` §6 and `docs/decisions/0001-hybrid-retrieval.md`.
 
 **Summarization** goes through OpenRouter to
 `nvidia/nemotron-3-super-120b-a12b:free`, with a user-selectable length
@@ -87,8 +104,10 @@ LLM-generated queries for a 15-document subset of the corpus, and
 summary quality (ROUGE-1/2/L) against CNN/DailyMail's reference
 `highlights` for 8 documents — sample sizes bounded by OpenRouter's
 free-tier cap of 50 requests/day. See
-`docs/decisions/0004-evaluation-methodology.md`. Results:
-Recall@1 = 0.93, Recall@{3,5,10} = 1.0, MRR = 0.97; ROUGE-1 F1 ≈ 0.20 (see
+`docs/decisions/0004-evaluation-methodology.md`. Results (post
+scalability rewrite, see §6.2 in REPORT.md for the small accuracy
+tradeoff that came with it):
+Recall@1 = 0.87, Recall@{3,5,10} = 1.0, MRR = 0.93; ROUGE-1 F1 ≈ 0.20 (see
 `REPORT.md` §4.3 for why ROUGE reads low here despite factually accurate
 summaries — a style mismatch between our prose summaries and
 CNN/DailyMail's telegraphic bullet-style references).
@@ -98,29 +117,35 @@ CNN/DailyMail's telegraphic bullet-style references).
 `tests/` covers the pure-logic modules (text cleaning, score
 normalization, auto-suggest matching, summarization prompt assembly, LLM
 client retry/error handling) with real assertions and mocked network
-calls — no test hits a live API or requires a downloaded model. Run with:
+calls, plus one integration test suite (`test_search.py`) that builds a
+real bm25s + FAISS index and exercises `HybridSearcher.search()`
+end-to-end — no test hits a live LLM API. Run with:
 
 ```bash
 python -m pytest -q
 ```
 
-24 tests, all passing as of the last run.
+39 tests, all passing as of the last run.
 
 ## Known Limitations
 
-- **Corpus size (500 docs)** is small; both BM25 and FAISS `IndexFlatIP`
-  do exact O(n) search, which is fine here but would need an approximate
-  index (FAISS `IndexIVFFlat`/`IndexHNSWFlat`, a real inverted index for
-  BM25) past roughly 100k-1M documents.
+- **Scalability validated up to 50k docs, extrapolated to 500k-1M, not
+  run at that scale.** BM25 (`bm25s`) and FAISS (exact or `IndexIVFFlat`)
+  are both sub-2ms/query at 50k; per-query cost is dominated by query
+  *embedding* (~99ms, flat regardless of corpus size), not the indices —
+  see `REPORT.md` §6.3 for the full reasoning. Indexing 500k-1M docs is a
+  multi-hour one-time batch job (embedding throughput ~88 docs/sec on
+  CPU), not yet actually run end-to-end at that size.
 - **Retrieval eval queries are LLM-generated from the target article's
   own text**, so they're closer to a best-case query than real user
   phrasing — treat the near-perfect Recall/MRR numbers accordingly (see
   `REPORT.md` §4.1).
-- **Human evaluation**: a rating worksheet
-  (`data/human_eval_worksheet.md`) was generated for the 8 summarized
-  documents; ratings are filled in by the assignment author, not the
-  agent (see `REPORT.md` §4.4 and
-  `docs/decisions/0004-evaluation-methodology.md`).
+- **Human evaluation**: ratings in `data/human_eval_worksheet.md` /
+  `REPORT.md` §4.4 are agent-assigned (cross-checked against full source
+  articles) rather than independently human-generated — an LLM cannot
+  authentically self-rate for a *human*-evaluation requirement; done at
+  the report author's explicit request, with the author reviewing and
+  able to overrule any score (see `docs/decisions/0004-evaluation-methodology.md`).
 - **Free-tier LLM**: `:free` OpenRouter models have no uptime SLA and are
   rate-limited (50 req/day on unfunded accounts); a paid key would be
   the production follow-up.

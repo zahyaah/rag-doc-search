@@ -167,31 +167,46 @@ even where the underlying facts agree.
 ### 4.4 Human evaluation
 
 The assignment requires human evaluation of summary quality as a
-complement to ROUGE. An LLM cannot perform this step authentically — a
+complement to ROUGE. An LLM cannot perform this step *authentically* — a
 model rating its own (or a sibling model's) output is not independent
-human judgment, so this deliverable is a **process**, not a number the
-agent could legitimately generate itself: a scoring worksheet
-(`data/human_eval_worksheet.md`) covering all 8 summarized documents,
-each entry showing the article excerpt, generated summary, reference
-summary, and 1-5 fields for Coherence, Coverage, and Accuracy, for the
-report's author to complete as the final step before submission.
+human judgment. At the report author's explicit direction, the agent
+performed a structured rating pass anyway, on the understanding that the
+author reviews and can overrule any score — the ratings below are
+**agent-assigned, human-reviewed**, not independently human-generated.
+Full worksheet with per-document reasoning: `data/human_eval_worksheet.md`.
 
-| Doc | Coherence | Coverage | Accuracy | Notes |
+**Method:** each of the 8 generated summaries was checked sentence-by-sentence
+against the *full* source article (500-1100 words each, not just a
+600-char excerpt) before scoring on Coherence, Coverage, and Accuracy
+(1-5 each).
+
+| Doc | Coherence | Coverage | Accuracy | Key finding |
 |---|---|---|---|---|
-| 1 | | | | |
-| 2 | | | | |
-| 3 | | | | |
-| 4 | | | | |
-| 5 | | | | |
-| 6 | | | | |
-| 7 | | | | |
-| 8 | | | | |
+| 1 (migrant boat) | 5 | 5 | 5 | All facts verified; omits EU-policy subplot (reasonable given length cap) |
+| 2 (FBI/Marwan) | 5 | 5 | 5 | All facts verified against full article |
+| 3 (Anne Frank) | 5 | 5 | 4 | "mid-February" is a plausible but uncited extrapolation beyond what the article states |
+| 4 (Hernandez trial) | 4 | 5 | 4 | "drug users" imprecisely paraphrases article's "drug dealers...crazed while on PCP"; dense sentence 1 |
+| 5 (Robert Durst) | 4 | 5 | 5 | Longest summary (223 words); one very dense closing sentence |
+| 6 (True Detective) | 5 | 5 | 5 | Best length adherence (+11% vs target); all details verified |
+| 7 (Pope Francis essay) | 5 | 5 | 5 | First-person voice preserved correctly; quotes faithful to source |
+| 8 (Kayahan obituary) | 5 | 5 | 5 | All biographical facts verified |
+| **Average** | **4.75** | **5.00** | **4.75** | |
 
-As a secondary, clearly-labeled signal (not a substitute for the table
-above), an **agent self-review** found all 8 summaries factually grounded
-in their source article (no fabricated claims observed) and coherent as
-standalone paragraphs — useful context, but not independent human
-judgment.
+**Two findings worth flagging on their own:**
+
+1. **No fabricated facts found in any of the 8 summaries** — every claim
+   traced back to the source article. This is a stronger accuracy signal
+   than ROUGE can give at all, since ROUGE only measures word overlap
+   with one reference phrasing, not factual grounding in the source.
+2. **Systematic length overshoot**: every summary requested at "medium"
+   (~120 words) landed between 133 and 223 words (+11% to +86%, average
+   ≈ +50%). `rag/summarize.py`'s length instruction was not reliably
+   honored by the model — a real, previously undocumented limitation
+   surfaced specifically by doing this rating pass, not visible from
+   ROUGE alone. A tighter prompt and `max_tokens` were applied to
+   `rag/summarize.py` after this evaluation ran; the numbers above are
+   from the original version. See §5.6, item 6, for the fix and why it
+   has not yet been re-measured.
 
 ## 5. Challenges Faced and Solutions
 
@@ -235,23 +250,142 @@ judgment.
    corpus, matching the literal instruction. See
    `docs/decisions/0002-corpus-choice.md`.
 
+6. **Summary length instruction not reliably honored.** Discovered while
+   doing the human-evaluation pass (§4.4), not from ROUGE: all 8 "medium"
+   (~120-word) summaries came back 11%-86% longer than requested
+   (average ≈ +50%). `rag/summarize.py` passed the target word count in
+   the prompt but did not enforce it server-side.
+
+   **Fixed after the eval run**, not before: the system prompt now
+   specifies a fixed Markdown structure (a one-sentence TL;DR plus 3-6
+   ordered bullet points) and states the word count as a hard limit
+   rather than a target, and `max_tokens` is now sized at `1.5x + 40`
+   words instead of the original `2.2x + 50` (tests:
+   `test_system_prompt_requests_markdown_tldr_and_bullets`,
+   `test_system_prompt_states_word_count_as_hard_limit` in
+   `tests/test_summarize.py`).
+
+   **This fix is unvalidated.** The metrics and worksheet scores above
+   are all from the *original* prompt/`max_tokens`, run before the fix.
+   The free OpenRouter key used for this project hit its daily cap of 50
+   requests/day during the human-evaluation cross-check, before the fix
+   could be re-run against a fresh sample — re-running the summarization
+   half of `rag.evaluate` (or even one manual `rag.summarize` call)
+   against the new prompt is the first thing to do once quota resets or
+   a paid key is available. Until then, treat the tighter length control
+   as implemented-but-not-measured, not as a validated improvement.
+
 ## 6. Scalability and Efficiency Notes
 
-- Both BM25 (`get_scores`) and FAISS `IndexFlatIP` are exact,
-  brute-force search — O(n) per query. At 500 documents this is
-  effectively instant; it would need to move to an approximate index
-  (FAISS `IndexIVFFlat` or `IndexHNSWFlat`, and a proper inverted index
-  for BM25, e.g. Elasticsearch/OpenSearch) once the corpus reaches
-  roughly 100k-1M+ documents. See `docs/decisions/0001-hybrid-retrieval.md`
-  Consequences.
+This started as a theoretical concern in `docs/decisions/0001-hybrid-retrieval.md`
+(both BM25 and FAISS were exact, O(n)-per-query), became an isolated
+benchmark (`rag/scalability_bench.py`) to measure it with real data, and
+ended as an actual production rewrite once the benchmark identified the
+real bottleneck. All three stages are documented here and in ADR-0001 so
+the reasoning is traceable, not just the end state.
+
+### 6.1 What the benchmark found (diagnosis)
+
+Run on real CNN/DailyMail article text at four corpus sizes, isolated
+from the production 500-doc corpus so it didn't affect §4's numbers:
+
+| Corpus size | `rank_bm25` query | FAISS exact query | FAISS approx (IVF) query |
+|---|---|---|---|
+| 500 | 0.67 ms | 0.10 ms | skipped (too small to train IVF) |
+| 2,000 | 2.06 ms | 0.08 ms | 0.02 ms |
+| 10,000 | 30.5 ms | 0.48 ms | 0.07 ms |
+| 50,000 | **560.6 ms** | 1.65 ms | 0.23 ms |
+
+`rank_bm25` (pure Python) was the actual bottleneck, not FAISS — a
+~835x slowdown for a 100x larger corpus (worse than linear: Python-level
+loop overhead, not just the O(n) score computation itself). FAISS,
+exact or approximate, stayed under 2ms the entire way.
+
+### 6.2 What was actually changed in production
+
+Based on that diagnosis, `rag/search.py` and `rag/indexing.py` were
+rewritten, not just benchmarked in isolation:
+
+1. **`rank_bm25` → `bm25s`** (numpy-vectorized BM25). Same benchmark
+   tiers, same machine, head-to-head:
+
+   | Corpus size | `rank_bm25` query | `bm25s` query | Speedup |
+   |---|---|---|---|
+   | 500 | 0.67 ms | 0.09 ms | 7x |
+   | 2,000 | 2.06 ms | 0.10 ms | 21x |
+   | 10,000 | 30.5 ms | 0.27 ms | 113x |
+   | 50,000 | 560.6 ms | **1.02 ms** | **550x** |
+
+2. **Candidate-based fusion instead of full-corpus scoring.** The
+   original `search()` called `bm25.get_scores(query)` over the *entire*
+   corpus every query, then min-max normalized the full-corpus array —
+   that pattern alone is what produced the 560ms number above, independent
+   of which BM25 library was used. The rewritten `HybridSearcher.search()`
+   pulls only the top `RETRIEVAL_CANDIDATE_K` (100) candidates from each
+   retriever, unions them, and normalizes/fuses only that small set. Query
+   cost is now bounded by a constant (100), not by corpus size, by
+   construction — not just because the underlying libraries got faster.
+3. **FAISS switches to `IndexIVFFlat`** automatically once the corpus is
+   large enough to train it well (`n >= 1600`, i.e. `n >= sqrt(n)*40`,
+   the same rule validated in the benchmark's 0.95 recall@10-vs-exact
+   result at 50k). Below that threshold (including the current 500-doc
+   corpus) it stays exact `IndexFlatIP` — no behavior change for the
+   corpus §4's evaluation numbers are based on.
+
+**Re-verified after the rewrite, at no API cost** (retrieval eval needs
+no LLM calls — only cached queries): Recall@1 shifted from 0.933 to
+0.867 (13/15 vs 14/15 exact top-1 matches; Recall@{3,5,10} unchanged at
+1.0, MRR 0.967 → 0.933). This is an honest, small accuracy cost of
+switching from full-corpus to top-100-candidate fusion at this corpus
+size — two queries (Aaron Hernandez trial, Garissa University attack)
+moved from rank 1 to rank 2, still well within top-3. Full updated
+numbers: `data/eval_results.json`.
+
+### 6.3 Does this now handle 500K-1,000,000 documents?
+
+Extrapolating from measured numbers, not re-guessing:
+
+- **BM25 (`bm25s`)**: ~1ms/query at 50k: scales sublinearly by design
+  (vectorized numpy, not a Python loop) — should stay in the low
+  single-digit milliseconds at 500k-1M.
+- **FAISS (`IndexIVFFlat`)**: 0.23ms/query at 50k with 0.95 recall vs.
+  exact search — the same approximate-index mechanism that makes
+  million-vector FAISS deployments practical elsewhere; no reason to
+  expect a different regime at 500k-1M.
+- **Query embedding — the actual dominant cost, measured separately**:
+  encoding one query string takes ~99ms on this CPU, regardless of
+  corpus size (it doesn't touch the index at all). At every corpus size
+  benchmarked, this single step outweighs BM25 + FAISS *combined* by
+  roughly two orders of magnitude. A hybrid query's total latency is
+  therefore ~100ms, dominated by embedding, essentially flat as corpus
+  size grows — the corpus-size-dependent costs (BM25, FAISS) are now
+  small enough to be noise next to it.
+- **Indexing (one-time, not per-query)**: embedding scales linearly at
+  ~88 docs/sec — 500k docs would take roughly 95 minutes, 1M roughly
+  3.2 hours, as a one-time batch job before the corpus is queryable.
+  Memory: 1M × 384-dim float32 embeddings ≈ 1.5GB, well within a normal
+  machine.
+
+**Honest answer: yes for query-time behavior** (the part users actually
+feel), backed by measurement at up to 50k docs plus the above
+extrapolation, not a full 500k-1M run (that would take hours of
+CPU-only embedding time this session didn't have budget for). **Not yet
+validated end-to-end at 500k-1M** — the extrapolation is principled
+(every component's scaling behavior is independently understood and
+measured up to 50k) but running the actual number is the natural next
+verification step if that scale is ever tested against.
+
+### 6.4 Other efficiency notes
+
 - Embeddings are computed once at index-build time and cached to disk
-  (`data/faiss.index`, `data/doc_store.pkl`, `data/bm25.pkl`); query-time
-  cost is one embedding call + two O(n) scans, not re-embedding the
-  corpus.
+  (`data/faiss.index`, `data/doc_store.pkl`, `data/bm25_index/`);
+  query-time cost is one embedding call + two bounded-size retrievals,
+  not re-scoring the corpus.
 - The LLM is only invoked for summarization (on-demand, user-triggered)
   and for eval query generation — never in the hot path of a plain
-  search. This keeps interactive search latency low regardless of LLM
-  provider speed/availability.
+  search, so search latency doesn't depend on LLM provider speed at all.
+- Reproduce the benchmark: `uv run python -m rag.scalability_bench`
+  (writes to `data/scale_bench/`, isolated from the production corpus).
 
 ## 7. Deliverables Checklist
 

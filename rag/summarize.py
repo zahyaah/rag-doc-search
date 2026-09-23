@@ -27,12 +27,22 @@ def summarize_documents(
         "You are a precise summarization assistant. Summarize the given documents "
         "into a single coherent summary that captures their essence. Do not add "
         "information that isn't in the documents. Do not mention 'Document 1' etc. "
-        "in the output -- write it as one unified summary."
+        "in the output -- write it as one unified summary.\n\n"
+        "Format the output as Markdown, exactly like this:\n"
+        "**TL;DR:** one sentence capturing the single most important point.\n\n"
+        "**Key points:**\n"
+        "- first key fact\n"
+        "- second key fact\n"
+        "- (3-6 bullets total, each one sentence, ordered by importance)\n\n"
+        "Do not add any other section, heading, or preamble beyond TL;DR and Key points.\n"
+        f"Stay within {target_words} words total (TL;DR + all bullets combined) -- "
+        "this is a hard limit, not a suggestion. Prioritize the most important facts "
+        "over completeness if the two conflict."
     )
     user_prompt = (
         f"User query: {query}\n\n" if query else ""
     ) + (
-        f"Summarize the following document(s) in approximately {target_words} words:\n\n"
+        f"Summarize the following document(s) in {target_words} words or fewer:\n\n"
         f"{combined_text}"
     )
 
@@ -41,6 +51,11 @@ def summarize_documents(
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ],
-        max_tokens=int(target_words * 2.2) + 50,
+        # Tighter cap than before (was 2.2x + 50): the wider budget let the
+        # model habitually overshoot the requested word count by 11-86% in
+        # eval (see REPORT.md limitation). ~1.5 words/token plus a small
+        # fixed allowance for markdown syntax (**, -, headers) is enough for
+        # the target word count without leaving room to ramble.
+        max_tokens=int(target_words * 1.5) + 40,
     )
     return summary
